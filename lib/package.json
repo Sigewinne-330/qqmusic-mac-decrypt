@@ -1,0 +1,8 @@
+{
+  "name": "qqmusic-mac-decrypt",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@unlock-music/crypto": "0.1.12"
+  }
+}

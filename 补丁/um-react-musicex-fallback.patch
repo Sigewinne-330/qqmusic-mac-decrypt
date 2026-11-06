@@ -1,0 +1,42 @@
+diff --git a/src/features/file-listing/fileListingSlice.ts b/src/features/file-listing/fileListingSlice.ts
+index 17e43cb..2bc989a 100644
+--- a/src/features/file-listing/fileListingSlice.ts
++++ b/src/features/file-listing/fileListingSlice.ts
+@@ -95,7 +95,10 @@ export const processFile = createAsyncThunk<
+ 
+   const options: DecryptCommandOptions = {
+     fileName: file.fileName,
+-    qmc2Key: selectQMCv2KeyByFileName(state, qmcv2MusicExMediaFile || file.fileName),
++    // Prefer the musicex media name, but fall back to an exact file-name hit before fuzzy search.
++    qmc2Key: qmcv2MusicExMediaFile
++      ? selectQMCv2KeyByFileName(state, qmcv2MusicExMediaFile, file.fileName)
++      : selectQMCv2KeyByFileName(state, file.fileName),
+     kwm2key: selectKWMv2Key(state, kuwoHdr),
+     kugouKey: selectKugouKey(state, kugouHdr),
+     qingTingAndroidKey: selectQtfmAndroidKey(state),
+diff --git a/src/features/settings/settingsSelector.ts b/src/features/settings/settingsSelector.ts
+index 991ba3e..f5d8276 100644
+--- a/src/features/settings/settingsSelector.ts
++++ b/src/features/settings/settingsSelector.ts
+@@ -15,13 +15,18 @@ export const selectFinalKWMv2Keys = (state: RootState) => state.settings.product
+ export const selectStagingKugouV5Keys = (state: RootState) => state.settings.staging.kugou.keys;
+ export const selectFinalKugouV5Keys = (state: RootState) => state.settings.production.kugou.keys;
+ 
+-export const selectQMCv2KeyByFileName = (state: RootState, name: string): string | undefined => {
++export const selectQMCv2KeyByFileName = (
++  state: RootState,
++  name: string,
++  ...fallbackNames: string[]
++): string | undefined => {
+   const normalizedName = name.normalize();
+ 
+   let ekey: string | undefined;
+   const { keys, allowFuzzyNameSearch } = selectFinalQMCv2Settings(state);
+-  if (hasOwn(keys, normalizedName)) {
+-    ekey = keys[normalizedName];
++  const exactName = [normalizedName, ...fallbackNames.map((n) => n.normalize())].find((n) => hasOwn(keys, n));
++  if (exactName !== undefined) {
++    ekey = keys[exactName];
+   } else if (allowFuzzyNameSearch) {
+     const qmc2KeyStoreNames = Object.keys(keys);
+     if (qmc2KeyStoreNames.length > 0) {
